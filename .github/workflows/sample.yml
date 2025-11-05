@@ -3,6 +3,7 @@
     push:
       branches:
         - master
+        - main
   jobs:
   - name: Build
     buid:
