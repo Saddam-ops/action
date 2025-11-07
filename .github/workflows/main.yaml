@@ -77,7 +77,7 @@ jobs:
     
     - name: Skip Tests for Feature Branches
       if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop'
-  #    run: echo "Skipping tests on feature branch: ${GITHUB_REF#refs/heads/}"
+      run: echo "Skipping tests on feature"
   security-scans:
     needs: [build, testing]
     runs-on: ubuntu-latest
