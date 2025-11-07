@@ -98,7 +98,7 @@ jobs:
     
     - name: Upload Scan Results
       uses: github/codeql-action/upload-sarif@v2
-        with:
+      with:
         scan-type: fs
         severity: CRITICAL,HIGH,MEDIUM
         format: table
