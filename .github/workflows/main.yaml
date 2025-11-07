@@ -1,16 +1,16 @@
 name: CICD
+
 on: 
   push:
     branches: ['main', 'develop']
   pull_request:
-     branches: ['main', 'develop']
+    branches: ['main', 'develop']
   workflow_dispatch:
-  # schedule:
-  #   - cron: '0 0 * * *'  # Runs at midnight UTC every day
 
 permissions:
   contents: read
   packages: write
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -18,69 +18,88 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         jdk: [temurin-11, temurin-17]
+      fail-fast: false
+    
     steps:
-    - name: code checkout
+    - name: Checkout Code
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
     - name: Set up JDK ${{ matrix.jdk }}
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
         java-version: ${{ matrix.jdk }}
         cache: 'maven'
-    - name: build-artifact
-      run: mvn install
-    - name: upload artifact
+    
+    - name: Build Artifact
+      run: mvn -B clean install
+    
+    - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: my-artifact-${{ matrix.os }}-jdk${{ matrix.jdk }}
+        name: app-${{ matrix.os }}-jdk${{ matrix.jdk }}
         path: target/*.war
-    - name: notify build failure
+        retention-days: 5
+    
+    - name: Notify Build Failure
       if: failure()
-      run eho "build failed! please check the logs"
+      run: echo "Build failed! Please check the logs"
       
   testing:
     needs: build
     runs-on: ubuntu-latest
+    
     steps:
-    - name: code checkout
+    - name: Checkout Code
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    - name: Set up JDK 11
+    
+    - name: Set up JDK
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
         java-version: '11'
         cache: 'maven'
-    - name: Run Tests on main branches
+    
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Run Tests
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-      run: mvn test
-    - name: checkstyle analysys
+      run: mvn -B test
+    
+    - name: Code Quality Analysis
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-      run: mvn checkstyle:checkstyle
-    - name: if other branch ski Tests
+      run: |
+        mvn checkstyle:checkstyle
+        mvn pmd:pmd
+    
+    - name: Skip Tests for Feature Branches
       if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop'
-      run: echo "skipping tests and code quality analysis on feature branches"
+      run: echo "Skipping tests on feature branch: ${GITHUB_REF#refs/heads/}"
 
   security-scans:
-    needs: build, testing
+    needs: [build, testing]
     runs-on: ubuntu-latest
+    
     steps:
-    - name: code checkout
+    - name: Checkout Code
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    - name: trivy fs scans
-      uses: aquasecurity/trivy-action@0.28.0
+    
+    - name: Run Trivy Scan
+      uses: aquasecurity/trivy-action@master
       with:
-        scan-type: fs
-        severity: CRITICAL,HIGH,MEDIUM
-        format: table
-        exit-code: '0'
-        vuln-type: os,library
-        output: trivy-report.json
-    - name: Upload Trivy Report
-      uses: actions/upload-artifact@v3
+        scan-type: 'fs'
+        severity: 'CRITICAL,HIGH,MEDIUM'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Scan Results
+      uses: github/codeql-action/upload-sarif@v2
       with:
-        name: trivy-report
-        path: trivy-report.json
+        sarif_file: 'trivy-results.sarif'
