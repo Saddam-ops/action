@@ -32,12 +32,19 @@ jobs:
         distribution: 'temurin'
         java-version: ${{ matrix.jdk }}
         cache: 'maven'
+<<<<<<< HEAD
     
     - name: Build Artifact
       run: mvn -B clean install
     
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
+=======
+    - name: build-artifact
+      run: mvn install
+    - name: upload artifact
+      uses: echapmanFromBunnings/upload-artifact@3.0
+>>>>>>> b06501e1185db13b4108bdfdc0d0aa56f0b7051f
       with:
         name: app-${{ matrix.os }}-jdk${{ matrix.jdk }}
         path: target/*.war
@@ -45,7 +52,11 @@ jobs:
     
     - name: Notify Build Failure
       if: failure()
+<<<<<<< HEAD
       run: echo "Build failed! Please check the logs"
+=======
+      run: echo "build failed! please check the logs"
+>>>>>>> b06501e1185db13b4108bdfdc0d0aa56f0b7051f
       
   testing:
     needs: build
@@ -94,6 +105,7 @@ jobs:
     - name: Run Trivy Scan
       uses: aquasecurity/trivy-action@master
       with:
+<<<<<<< HEAD
         scan-type: 'fs'
         severity: 'CRITICAL,HIGH,MEDIUM'
         format: 'sarif'
@@ -101,5 +113,15 @@ jobs:
     
     - name: Upload Scan Results
       uses: github/codeql-action/upload-sarif@v2
+=======
+        scan-type: fs
+        severity: CRITICAL,HIGH,MEDIUM
+        format: table
+        exit-code: '0'
+        vuln-type: os,library
+        output: trivy-report.json
+    - name: Upload Trivy Report
+      uses: echapmanFromBunnings/upload-artifact@3.0
+>>>>>>> b06501e1185db13b4108bdfdc0d0aa56f0b7051f
       with:
         sarif_file: 'trivy-results.sarif'
