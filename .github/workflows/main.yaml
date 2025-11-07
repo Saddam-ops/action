@@ -36,7 +36,7 @@ jobs:
         path: target/*.war
     - name: notify build failure
       if: failure()
-      run eho "build failed! please check the logs"
+      run: echo "build failed! please check the logs"
       
   testing:
     needs: build
