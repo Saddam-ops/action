@@ -43,7 +43,7 @@ jobs:
     - name: Notify Build Failure
       if: failure()
       run: echo "Build failed! Please check the logs
-      run: echo "build failed! please check the logs"
+      #run: echo "build failed! please check the logs"
       
   testing:
     needs: build
