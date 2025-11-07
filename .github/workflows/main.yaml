@@ -1,0 +1,86 @@
+name: CICD
+on: 
+  push:
+    branches: ['main', 'develop']
+  pull_request:
+     branches: ['main', 'develop']
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '0 0 * * *'  # Runs at midnight UTC every day
+
+permissions:
+  contents: read
+  packages: write
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        jdk: [temurin-11, temurin-17]
+    steps:
+    - name: code checkout
+      uses: actions/checkout@v3
+    - name: Set up JDK ${{ matrix.jdk }}
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.jdk }}
+        cache: 'maven'
+    - name: build-artifact
+      run: mvn install
+    - name: upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: my-artifact-${{ matrix.os }}-jdk${{ matrix.jdk }}
+        path: target/*.war
+    - name: notify build failure
+      if: failure()
+      run eho "build failed! please check the logs"
+      
+  testing:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: code checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+        cache: 'maven'
+    - name: Run Tests on main branches
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      run: mvn test
+    - name: checkstyle analysys
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+      run: mvn checkstyle:checkstyle
+    - name: if other branch ski Tests
+      if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop'
+      run: echo "skipping tests and code quality analysis on feature branches"
+
+  security-scans:
+    needs: build, testing
+    runs-on: ubuntu-latest
+    steps:
+    - name: code checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: trivy fs scans
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        scan-type: fs
+        severity: CRITICAL,HIGH,MEDIUM
+        format: table
+        exit-code: '0'
+        vuln-type: os,library
+        output: trivy-report.json
+    - name: Upload Trivy Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: trivy-report
+        path: trivy-report.json
