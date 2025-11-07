@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        jdk: [temurin-11, temurin-17]
+        jdk: [temurin-11]
       fail-fast: false    
     steps:
     - name: Checkout Code
@@ -34,7 +34,7 @@ jobs:
     - name: build-artifact
       run: mvn install
     - name: upload artifact
-      uses: echapmanFromBunnings/upload-artifact@3.0
+      uses: actions/upload-artifact@v5
       with:
         name: app-${{ matrix.os }}-jdk${{ matrix.jdk }}
         path: target/*.war
