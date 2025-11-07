@@ -93,7 +93,7 @@ jobs:
       with:
         scan-type: 'fs'
         severity: 'CRITICAL,HIGH,MEDIUM'
-        format: 'tablw
+        format: 'table'
         output: 'trivy-results.sarif'
     
     - name: Upload Scan Results
