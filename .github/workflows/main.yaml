@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
   packages: write
+  security-events: write  # Added for SARIF upload
 
 jobs:
   build:
@@ -31,10 +32,12 @@ jobs:
         distribution: 'temurin'
         java-version: ${{ matrix.java-version }}
         cache: 'maven'
-    - name: build-artifact
-      run: mvn install
-    - name: upload artifact
-      uses: actions/upload-artifact@v5
+
+    - name: Build Artifact
+      run: mvn -B clean install
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
       with:
         name: app-${{ matrix.os }}-jdk${{ matrix.java-version }}
         path: target/*.war
@@ -42,8 +45,7 @@ jobs:
     
     - name: Notify Build Failure
       if: failure()
-      run: echo "Build failed! Please check the logs
-      #run: echo "build failed! please check the logs"
+      run: echo "Build failed! Please check the logs"
       
   testing:
     needs: build
@@ -59,11 +61,13 @@ jobs:
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
-        java-version: '11'
+        java-version: '17'  # Changed to match build job
         cache: 'maven'
     
     - name: Download Build Artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v3
+      with:
+        name: app-ubuntu-latest-jdk17
     
     - name: Run Tests
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
@@ -72,12 +76,13 @@ jobs:
     - name: Code Quality Analysis
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
       run: |
-        mvn checkstyle:checkstyle
-        mvn pmd:pmd
+        mvn -B checkstyle:checkstyle
+        mvn -B pmd:pmd
     
     - name: Skip Tests for Feature Branches
       if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop'
-      run: echo "Skipping tests on feature"
+      run: echo "Skipping tests on feature branch: ${GITHUB_REF#refs/heads/}"
+
   security-scans:
     needs: [build, testing]
     runs-on: ubuntu-latest
@@ -93,19 +98,11 @@ jobs:
       with:
         scan-type: 'fs'
         severity: 'CRITICAL,HIGH,MEDIUM'
-        format: 'table'
+        format: 'sarif'
         output: 'trivy-results.sarif'
     
     - name: Upload Scan Results
       uses: github/codeql-action/upload-sarif@v2
       with:
-        scan-type: fs
-        severity: CRITICAL,HIGH,MEDIUM
-        format: table
-        exit-code: '0'
-        vuln-type: os,library
-        output: trivy-report.json
-    - name: Upload Trivy Report
-      uses: echapmanFromBunnings/upload-artifact@3.0
-      with:
         sarif_file: 'trivy-results.sarif'
+        category: 'trivy'
