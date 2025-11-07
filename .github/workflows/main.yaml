@@ -30,7 +30,7 @@ jobs:
     - name: build-artifact
       run: mvn install
     - name: upload artifact
-      uses: actions/upload-artifact@v3
+      uses: echapmanFromBunnings/upload-artifact@3.0
       with:
         name: my-artifact-${{ matrix.os }}-jdk${{ matrix.jdk }}
         path: target/*.war
@@ -80,7 +80,7 @@ jobs:
         vuln-type: os,library
         output: trivy-report.json
     - name: Upload Trivy Report
-      uses: actions/upload-artifact@v3
+      uses: echapmanFromBunnings/upload-artifact@3.0
       with:
         name: trivy-report
         path: trivy-report.json
