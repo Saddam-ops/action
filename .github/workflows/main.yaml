@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        jdk: [temurin-11]
+        java-version: [17]
       fail-fast: false    
     steps:
     - name: Checkout Code
@@ -25,18 +25,18 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Set up JDK ${{ matrix.jdk }}
+    - name: Set up JDK ${{ matrix.java-version }}
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
-        java-version: ${{ matrix.jdk }}
+        java-version: ${{ matrix.java-version }}
         cache: 'maven'
     - name: build-artifact
       run: mvn install
     - name: upload artifact
       uses: actions/upload-artifact@v5
       with:
-        name: app-${{ matrix.os }}-jdk${{ matrix.jdk }}
+        name: app-${{ matrix.os }}-jdk${{ matrix.java-version }}
         path: target/*.war
         retention-days: 5
     
